@@ -9,9 +9,12 @@ namespace Acoross
 	{
 		template <class T>
 		class Future
-			: public StateManager<T>
 		{
 		public:
+			Future()
+				: _assocState(nullptr)
+			{}
+
 			// ctor. from promise
 			Future(Sp<AssociatedState<T>> state)
 				: _assocState(state)
@@ -19,6 +22,10 @@ namespace Acoross
 
 			T Get()
 			{
+				if (!_assocState)
+				{
+					throw std::exception("invalid future");
+				}
 				return _assocState->GetValue();
 			}
 
@@ -34,6 +41,26 @@ namespace Acoross
 			bool IsReady() const
 			{
 				return (_assocState && _assocState->IsReady());
+			}
+
+			template <class Fty>
+			Future<std::result_of_t<Fty(Future<T>)>> Then(Fty func)
+			{
+				if (!_assocState)
+				{
+					throw std::exception("invalid future");
+				}
+
+				typedef std::result_of_t<Fty(Future<T>)> ReturnT;
+
+				auto next = [state = _assocState, func]()
+				{
+					return func(Future<T>(state));
+				};
+
+				_assocState->Then(next);
+
+				return Future<ReturnT>(Make<TaskAsyncState<ReturnT>>(next));
 			}
 
 		private:

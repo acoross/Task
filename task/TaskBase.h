@@ -32,8 +32,12 @@ namespace Acoross
 	template <class T>
 	using Sp = std::shared_ptr<T>;
 
-	template<typename T>
-	constexpr auto Make = std::make_shared<T>;
+	template<class _Ty,
+		class... _Types> 
+		inline Sp<_Ty> Make(_Types&&... _Args)
+	{
+		return std::make_shared<_Ty>(std::forward<_Types>(_Args)...);
+	}
 }
 
 // functional
